@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Head *)",
+      "Bash(.\\\\gradlew assembleDebug)",
+      "PowerShell(Test-Path *)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\JetBrains\\\\IntelliJ IDEA Community Edition 2023.2\\\\jbr\"; $env:ANDROID_HOME = \"D:\\\\Android\\\\Sdk\\\\Sdk\"; $env:PATH = \"$env:JAVA_HOME\\\\bin;$env:PATH\"; Set-Location \"D:\\\\Unit_Coverter\"; .\\\\gradlew.bat assembleDebug 2>&1)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"https://maven.google.com/web/index.html\" -TimeoutSec 5 -UseBasicParsing; \"Status: $\\($r.StatusCode\\)\" } catch { \"No internet: $_\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"https://maven.google.com/web/index.html#com.google.devtools.ksp\" -TimeoutSec 10 -UseBasicParsing; $r.Content | Select-String \"2\\\\.2\\\\.\" | Select-Object -First 20 } catch { $_ })"
+    ]
+  }
+}
