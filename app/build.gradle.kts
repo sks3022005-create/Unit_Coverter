@@ -5,6 +5,16 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    // Uploads builds to Firebase App Distribution (used by CI on every push)
+    alias(libs.plugins.firebase.appdistribution)
+}
+
+// Only apply the google-services plugin when a config file is present. This keeps
+// local/CI builds working without Firebase, and enables the in-app "new build
+// available" prompts once google-services.json is added to this module.
+val hasGoogleServices = file("google-services.json").exists()
+if (hasGoogleServices) {
+    apply(plugin = libs.plugins.google.services.get().pluginId)
 }
 
 android {
@@ -19,9 +29,26 @@ android {
         applicationId = "com.example.unit_coverter"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // CI passes an incrementing VERSION_CODE (the GitHub run number) so each
+        // distributed build is newer than the last and installs as an update.
+        versionCode = (System.getenv("VERSION_CODE") ?: "1").toInt()
+        versionName = System.getenv("VERSION_NAME") ?: "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        // Release keystore is supplied by the CI environment (see .github/workflows
+        // and SETUP_FIREBASE.md). Every build is signed with the SAME key so new
+        // versions install *over* the previous one on the device as an update.
+        create("release") {
+            val storeFilePath = System.getenv("RELEASE_STORE_FILE")
+            if (storeFilePath != null) {
+                storeFile = file(storeFilePath)
+                storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -31,7 +58,23 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Use the release keystore when CI provides it; otherwise fall back to
+            // the debug key so local `assembleRelease` still works.
+            signingConfig = if (System.getenv("RELEASE_STORE_FILE") != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
+    }
+
+    // Firebase App Distribution: which app + credentials to publish to, and who
+    // receives the build. Values come from CI env vars (kept out of source).
+    firebaseAppDistribution {
+        appId = System.getenv("FIREBASE_APP_ID") ?: ""
+        serviceCredentialsFile = System.getenv("FIREBASE_SERVICE_CREDENTIALS_FILE") ?: ""
+        groups = System.getenv("FIREBASE_TESTER_GROUPS") ?: "testers"
+        releaseNotes = System.getenv("RELEASE_NOTES") ?: "Automated build from CI"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -90,6 +133,13 @@ dependencies {
 
     // Play Billing (premium unlock)
     implementation(libs.billing.ktx)
+
+    // Firebase App Distribution in-app updates — only linked when Firebase is
+    // configured (google-services.json present), so builds without it are unaffected.
+    if (hasGoogleServices) {
+        implementation(platform(libs.firebase.bom))
+        implementation(libs.firebase.appdistribution)
+    }
 
     // Testing
     testImplementation(libs.junit)
