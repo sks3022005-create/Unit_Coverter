@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import java.math.BigDecimal
 import java.math.MathContext
 import javax.inject.Inject
+import kotlin.math.abs
 
 @HiltViewModel
 class CalculatorViewModel @Inject constructor() : ViewModel() {
@@ -102,11 +103,17 @@ class CalculatorViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    private fun format(value: Double): String =
-        NumberFormatter.format(BigDecimal(value).round(DISPLAY_MC))
+    private fun format(value: Double): String {
+        // Collapse floating-point residue (e.g. cos in radian mode, or 0.1+0.2-0.3)
+        // to a clean zero. The threshold sits far below any value realistically typed
+        // on the keypad but comfortably above trig/cancellation noise (~1E-15).
+        val cleaned = if (abs(value) < NEAR_ZERO) 0.0 else value
+        return NumberFormatter.format(BigDecimal(cleaned).round(DISPLAY_MC))
+    }
 
     private companion object {
         val DISPLAY_MC = MathContext(12)
+        const val NEAR_ZERO = 1e-12
         val CONTINUATION_TOKENS = setOf("+", "-", "×", "÷", "^", "!", "%")
     }
 }
