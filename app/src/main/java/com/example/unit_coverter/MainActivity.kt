@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val isDynamicColor by userPrefsDataStore.isDynamicColorEnabled
-                .collectAsStateWithLifecycle(initialValue = true)
+                .collectAsStateWithLifecycle(initialValue = false)
             val isForceDark by userPrefsDataStore.isDarkThemeForced
                 .collectAsStateWithLifecycle(initialValue = false)
 

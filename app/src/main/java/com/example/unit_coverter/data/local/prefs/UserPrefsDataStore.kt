@@ -24,8 +24,10 @@ class UserPrefsDataStore @Inject constructor(
     val defaultCategoryId: Flow<String> =
         store.data.map { it[Keys.DEFAULT_CATEGORY] ?: "length" }
 
+    // Default OFF so the branded palette is what users see out of the box; they can
+    // opt into Material You (wallpaper-based dynamic color) from Settings.
     val isDynamicColorEnabled: Flow<Boolean> =
-        store.data.map { it[Keys.DYNAMIC_COLOR] ?: true }
+        store.data.map { it[Keys.DYNAMIC_COLOR] ?: false }
 
     val isDarkThemeForced: Flow<Boolean> =
         store.data.map { it[Keys.FORCE_DARK] ?: false }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -21,10 +22,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,11 +50,11 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var expanded by rememberSaveable { mutableStateOf(false) }
 
     // Query text is held locally so the field updates synchronously with each
-    // keystroke (avoids cursor jumps from the ViewModel's debounced pipeline).
-    // Changes are forwarded to the ViewModel purely to drive the debounced search.
+    // keystroke (no cursor jumps); changes are forwarded to the ViewModel to drive
+    // the debounced search. A plain docked field avoids the expandable SearchBar,
+    // which misbehaved inside the top bar after first use.
     var query by rememberSaveable { mutableStateOf("") }
 
     fun updateQuery(newQuery: String) {
@@ -61,70 +63,48 @@ fun SearchScreen(
     }
 
     fun selectResult(result: SearchResult) {
-        expanded = false
         updateQuery("") // clear the bar after picking a result
         onNavigateToConverter(result.category.id, result.unit.id, null)
     }
 
-    // Re-run the search for a restored query (tab switch / process death) so the
-    // results match the text the field restored.
+    // Re-run the search for a restored query (tab switch / process death).
     LaunchedEffect(Unit) {
         if (query.isNotEmpty()) viewModel.onQueryChange(query)
     }
 
     Scaffold(
         modifier = modifier,
-        topBar = {
-            Box(
+        topBar = { TopAppBar(title = { Text("Search") }) },
+    ) { innerPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = ::updateQuery,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = if (expanded) 0.dp else 16.dp, vertical = 8.dp),
-            ) {
-                SearchBar(
-                    inputField = {
-                        SearchBarDefaults.InputField(
-                            query = query,
-                            onQueryChange = ::updateQuery,
-                            onSearch = { expanded = false },
-                            expanded = expanded,
-                            onExpandedChange = { expanded = it },
-                            placeholder = { Text("Search units…") },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                            trailingIcon = {
-                                if (query.isNotEmpty()) {
-                                    IconButton(onClick = { updateQuery("") }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Clear search")
-                                    }
-                                }
-                            },
-                        )
-                    },
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    SearchResultsList(
-                        results = uiState.results,
-                        onResultClick = ::selectResult,
-                    )
-                }
-            }
-        },
-    ) { innerPadding ->
-        if (!expanded) {
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Search units…") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = { updateQuery("") }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = MaterialTheme.shapes.large,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            )
+
             when {
                 query.isEmpty() ->
-                    EmptySearchHint(modifier = Modifier.padding(innerPadding))
+                    EmptySearchHint()
                 uiState.results.isNotEmpty() ->
-                    SearchResultsList(
-                        results = uiState.results,
-                        onResultClick = ::selectResult,
-                        modifier = Modifier.padding(innerPadding),
-                    )
-                // Only say "no match" once the debounced search matches the typed text,
-                // otherwise a pending search would flash it while the user is still typing.
+                    SearchResultsList(results = uiState.results, onResultClick = ::selectResult)
+                // Only say "no match" once the debounced search matches the typed text.
                 uiState.query == query ->
-                    NoResults(query = query, modifier = Modifier.padding(innerPadding))
+                    NoResults(query = query)
             }
         }
     }
