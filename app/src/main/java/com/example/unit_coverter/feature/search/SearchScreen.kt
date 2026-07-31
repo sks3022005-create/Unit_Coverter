@@ -14,16 +14,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,6 +50,28 @@ fun SearchScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var expanded by rememberSaveable { mutableStateOf(false) }
 
+    // Query text is held locally so the field updates synchronously with each
+    // keystroke (avoids cursor jumps from the ViewModel's debounced pipeline).
+    // Changes are forwarded to the ViewModel purely to drive the debounced search.
+    var query by rememberSaveable { mutableStateOf("") }
+
+    fun updateQuery(newQuery: String) {
+        query = newQuery
+        viewModel.onQueryChange(newQuery)
+    }
+
+    fun selectResult(result: SearchResult) {
+        expanded = false
+        updateQuery("") // clear the bar after picking a result
+        onNavigateToConverter(result.category.id, result.unit.id, null)
+    }
+
+    // Re-run the search for a restored query (tab switch / process death) so the
+    // results match the text the field restored.
+    LaunchedEffect(Unit) {
+        if (query.isNotEmpty()) viewModel.onQueryChange(query)
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -58,13 +83,20 @@ fun SearchScreen(
                 SearchBar(
                     inputField = {
                         SearchBarDefaults.InputField(
-                            query = uiState.query,
-                            onQueryChange = viewModel::onQueryChange,
-                            onSearch = {},
+                            query = query,
+                            onQueryChange = ::updateQuery,
+                            onSearch = { expanded = false },
                             expanded = expanded,
                             onExpandedChange = { expanded = it },
                             placeholder = { Text("Search units…") },
                             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (query.isNotEmpty()) {
+                                    IconButton(onClick = { updateQuery("") }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                    }
+                                }
+                            },
                         )
                     },
                     expanded = expanded,
@@ -73,28 +105,26 @@ fun SearchScreen(
                 ) {
                     SearchResultsList(
                         results = uiState.results,
-                        onResultClick = { result ->
-                            expanded = false
-                            onNavigateToConverter(result.category.id, result.unit.id, null)
-                        },
+                        onResultClick = ::selectResult,
                     )
                 }
             }
         },
     ) { innerPadding ->
         if (!expanded) {
-            if (uiState.query.isEmpty()) {
-                EmptySearchHint(modifier = Modifier.padding(innerPadding))
-            } else if (uiState.results.isEmpty()) {
-                NoResults(query = uiState.query, modifier = Modifier.padding(innerPadding))
-            } else {
-                SearchResultsList(
-                    results = uiState.results,
-                    onResultClick = { result ->
-                        onNavigateToConverter(result.category.id, result.unit.id, null)
-                    },
-                    modifier = Modifier.padding(innerPadding),
-                )
+            when {
+                query.isEmpty() ->
+                    EmptySearchHint(modifier = Modifier.padding(innerPadding))
+                uiState.results.isNotEmpty() ->
+                    SearchResultsList(
+                        results = uiState.results,
+                        onResultClick = ::selectResult,
+                        modifier = Modifier.padding(innerPadding),
+                    )
+                // Only say "no match" once the debounced search matches the typed text,
+                // otherwise a pending search would flash it while the user is still typing.
+                uiState.query == query ->
+                    NoResults(query = query, modifier = Modifier.padding(innerPadding))
             }
         }
     }
