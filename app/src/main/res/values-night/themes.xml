@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Unit_Coverter" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- Matches the Compose surface so there is no flash before Compose renders. -->
+    <style name="Theme.Unit_Coverter" parent="android:Theme.Material.NoActionBar">
+        <!-- Matches the Compose dark surface so there is no white flash at launch. -->
         <item name="android:windowBackground">@color/brand_window_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>
