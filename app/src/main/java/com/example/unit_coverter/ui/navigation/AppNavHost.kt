@@ -3,6 +3,7 @@ package com.example.unit_coverter.ui.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -21,6 +22,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.unit_coverter.feature.calculator.CalculatorScreen
 import com.example.unit_coverter.feature.converter.ConverterScreen
 import com.example.unit_coverter.feature.cooking.CookingScreen
 import com.example.unit_coverter.feature.customunit.AddEditCustomUnitScreen
@@ -40,6 +42,7 @@ private data class BottomNavItem(
 
 private val bottomNavItems = listOf(
     BottomNavItem(Screen.Converter, Screen.Converter::class, "Convert", Icons.Filled.Calculate),
+    BottomNavItem(Screen.Calculator, Screen.Calculator::class, "Calc", Icons.Filled.Functions),
     BottomNavItem(Screen.Search, Screen.Search::class, "Search", Icons.Filled.Search),
     BottomNavItem(Screen.History, Screen.History::class, "History", Icons.Filled.History),
     BottomNavItem(Screen.Favorites, Screen.Favorites::class, "Favorites", Icons.Filled.Favorite),
@@ -81,6 +84,8 @@ fun AppNavHost(
                 onNavigateToCustomUnits = ::navigateToCustomUnits,
             )
         }
+
+        composable<Screen.Calculator> { CalculatorScreen() }
 
         composable<Screen.Cooking> {
             CookingScreen(onNavigateBack = { navController.popBackStack() })

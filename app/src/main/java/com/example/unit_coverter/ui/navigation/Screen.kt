@@ -7,6 +7,8 @@ sealed class Screen {
 
     @Serializable data object Converter : Screen()
 
+    @Serializable data object Calculator : Screen()
+
     @Serializable data object Search : Screen()
 
     @Serializable data object History : Screen()
