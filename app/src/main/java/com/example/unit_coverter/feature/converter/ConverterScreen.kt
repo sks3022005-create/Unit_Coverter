@@ -23,11 +23,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -92,6 +90,7 @@ import com.example.unit_coverter.ui.components.NumericKeypad
 import com.example.unit_coverter.ui.components.UnitPickerBottomSheet
 import com.example.unit_coverter.ui.theme.CategoryPalette
 import com.example.unit_coverter.ui.theme.categoryPalette
+import com.example.unit_coverter.ui.theme.fixedSp
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -207,12 +206,11 @@ fun ConverterScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // Cards are static: input and result must both be visible without
-            // scrolling on any phone. No verticalScroll here by design — if a
-            // future change reintroduces it, the no-scroll guarantee breaks.
-
+            // Cards are wrap-content. The keypad below takes ALL remaining height
+            // (weight 1f) and sizes its keys to that slot — so on an S23 Ultra the
+            // keys grow, and they can never overflow the screen.
             // ── Input ────────────────────────────────────────────────────────
             InputCard(
                 unit = state.fromUnit,
@@ -232,7 +230,7 @@ fun ConverterScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 2.dp),
                 horizontalArrangement = Arrangement.Center,
             ) {
                 FilledIconButton(
@@ -280,10 +278,7 @@ fun ConverterScreen(
                     .padding(horizontal = 16.dp),
             )
 
-            Spacer(Modifier.weight(1f, fill = false))
-
-            // The keypad fills the space the system IME used to cover, so the
-            // result stays visible while the user types.
+            // The keypad fills remaining height and sizes itself to that slot.
             NumericKeypad(
                 onDigit = { viewModel.onEvent(ConverterEvent.AppendDigit(it)) },
                 onDecimal = { viewModel.onEvent(ConverterEvent.AppendDecimal) },
@@ -291,10 +286,10 @@ fun ConverterScreen(
                 onClear = { viewModel.onEvent(ConverterEvent.ClearInput) },
                 onToggleSign = { viewModel.onEvent(ConverterEvent.ToggleSign) },
                 palette = palette,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
             )
-
-            Spacer(Modifier.height(12.dp))
         }
     }
 
@@ -383,7 +378,7 @@ private fun InputCard(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -413,11 +408,15 @@ private fun InputCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { contentDescription = "Input value" },
-                textStyle = MaterialTheme.typography.headlineSmall,
+                textStyle = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = fixedSp(20f),
+                ),
                 placeholder = {
                     Text(
                         text = "0",
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontSize = fixedSp(20f),
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     )
                 },
@@ -470,6 +469,7 @@ private fun InputCard(
                 text = inputHintFor(category?.id),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                maxLines = 1,
                 modifier = Modifier.padding(start = 4.dp),
             )
         }
@@ -500,7 +500,7 @@ private fun ResultCard(
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
         Box(modifier = Modifier.background(palette.softGradient, MaterialTheme.shapes.large)) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -536,7 +536,9 @@ private fun ResultCard(
                     ) { value ->
                         Text(
                             text = value,
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = fixedSp(26f),
+                            ),
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = FontFamily.SansSerif,
                             color = if (hasResult) {

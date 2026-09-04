@@ -18,16 +18,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ContentCopy
@@ -46,6 +42,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -66,14 +63,14 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.unit_coverter.data.currency.CurrencyInfo
 import com.example.unit_coverter.data.currency.currencyInfo
+import com.example.unit_coverter.ui.components.NumericKeypad
 import com.example.unit_coverter.ui.theme.categoryPalette
+import com.example.unit_coverter.ui.theme.fixedSp
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -132,8 +129,6 @@ fun CurrencyScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .imePadding()
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
         ) {
             Spacer(Modifier.height(8.dp))
@@ -164,14 +159,17 @@ fun CurrencyScreen(
                     }
                     OutlinedTextField(
                         value = state.amountText,
-                        onValueChange = viewModel::onAmountChanged,
+                        onValueChange = {},
+                        readOnly = true,
                         modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.headlineSmall,
+                        textStyle = MaterialTheme.typography.headlineSmall.copy(
+                            fontSize = fixedSp(20f),
+                        ),
                         singleLine = true,
                         shape = MaterialTheme.shapes.medium,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Done,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = palette.accent,
+                            cursorColor = palette.accent,
                         ),
                     )
                 }
@@ -234,7 +232,9 @@ fun CurrencyScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = state.resultText.ifEmpty { "—" },
-                                style = MaterialTheme.typography.displaySmall,
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = fixedSp(26f),
+                                ),
                                 fontWeight = FontWeight.SemiBold,
                                 color = palette.onContainer,
                                 maxLines = 2,
@@ -321,7 +321,17 @@ fun CurrencyScreen(
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            NumericKeypad(
+                onDigit = viewModel::appendDigit,
+                onDecimal = viewModel::appendDecimal,
+                onBackspace = viewModel::backspace,
+                onClear = viewModel::clearAmount,
+                onToggleSign = viewModel::toggleSign,
+                palette = palette,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+            )
         }
     }
 

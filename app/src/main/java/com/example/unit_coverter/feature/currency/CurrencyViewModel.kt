@@ -85,6 +85,30 @@ class CurrencyViewModel @Inject constructor(
         recompute()
     }
 
+    fun appendDigit(digit: Char) = editAmount { it + digit }
+
+    fun appendDecimal() = editAmount { current ->
+        val body = current.removePrefix("-")
+        when {
+            body.contains('.') -> current
+            body.isEmpty() -> if (current.startsWith("-")) "-0." else "0."
+            else -> "$current."
+        }
+    }
+
+    fun backspace() = editAmount { it.dropLast(1) }
+
+    fun clearAmount() = editAmount { "" }
+
+    fun toggleSign() = editAmount { current ->
+        if (current.startsWith("-")) current.removePrefix("-") else "-$current"
+    }
+
+    private fun editAmount(transform: (String) -> String) {
+        _state.update { it.copy(amountText = transform(it.amountText)) }
+        recompute()
+    }
+
     fun onFromSelected(code: String) {
         _state.update { it.copy(fromCode = code) }
         recompute()

@@ -1,13 +1,13 @@
 package com.example.unit_coverter.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,21 +26,23 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.isFinite
 import com.example.unit_coverter.ui.theme.CategoryPalette
+import com.example.unit_coverter.ui.theme.fixedSp
 
 /**
- * In-app numeric keypad for the converter.
+ * In-app numeric keypad.
  *
- * The converter only ever needs digits, a decimal point and a sign, so the
- * system IME is the wrong tool: it covers half the screen, hides the result the
- * user is trying to read, and offers a full QWERTY for a four-character number.
- * This keypad is always visible, so a conversion is one tap away and the result
- * stays on screen while typing.
+ * Sized from the height the parent actually gives it — never from the full
+ * screen height — so on a tall phone (S23 Ultra) leftover space becomes larger
+ * keys, and on a compact phone the keys shrink until they fit. The parent must
+ * place this in a bounded slot (typically `Modifier.weight(1f)`); wrap-content
+ * falls back to 48 dp keys.
  *
- * Keys report through [onKey]; the caller decides how to mutate the input, so
- * this component holds no state.
+ * Keys report through callbacks; this component holds no state.
  */
 @Composable
 fun NumericKeypad(
@@ -55,53 +57,66 @@ fun NumericKeypad(
 ) {
     val haptics = LocalHapticFeedback.current
 
-    // Row-major layout. Digits sit under the thumb; destructive keys (clear,
-    // backspace) live on the right edge, away from the digits.
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        KeypadRow {
-            DigitKey("7") { haptics.tap(); onDigit('7') }
-            DigitKey("8") { haptics.tap(); onDigit('8') }
-            DigitKey("9") { haptics.tap(); onDigit('9') }
-            ActionKey(
-                label = "C",
-                contentDescription = "Clear",
-                container = MaterialTheme.colorScheme.errorContainer,
-                content = MaterialTheme.colorScheme.onErrorContainer,
-            ) { haptics.tap(); onClear() }
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val rows = 4
+        val rowGap = 6.dp
+        val verticalPad = 6.dp
+        val keyHeight: Dp = if (maxHeight.isFinite) {
+            val usable = maxHeight - verticalPad * 2 - rowGap * (rows - 1)
+            (usable / rows).coerceAtMost(64.dp).coerceAtLeast(1.dp)
+        } else {
+            48.dp
         }
-        KeypadRow {
-            DigitKey("4") { haptics.tap(); onDigit('4') }
-            DigitKey("5") { haptics.tap(); onDigit('5') }
-            DigitKey("6") { haptics.tap(); onDigit('6') }
-            ActionKey(
-                icon = true,
-                contentDescription = "Backspace",
-                container = palette.container,
-                content = palette.onContainer,
-            ) { haptics.tap(); onBackspace() }
-        }
-        KeypadRow {
-            DigitKey("1") { haptics.tap(); onDigit('1') }
-            DigitKey("2") { haptics.tap(); onDigit('2') }
-            DigitKey("3") { haptics.tap(); onDigit('3') }
-            ActionKey(
-                label = "+/−",
-                contentDescription = "Toggle sign",
-                container = palette.container,
-                content = palette.onContainer,
-            ) { haptics.tap(); onToggleSign() }
-        }
-        KeypadRow {
-            DigitKey("0") { haptics.tap(); onDigit('0') }
-            DigitKey("00") { haptics.tap(); onDigit('0'); onDigit('0') }
-            DigitKey(decimalSeparator.toString()) { haptics.tap(); onDecimal() }
-            // Balances the grid; the result updates live so there is no "equals".
-            Box(Modifier.weight(1f))
+        val digitFontSize = fixedSp((keyHeight.value * 0.48f).coerceIn(14f, 28f))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = verticalPad),
+            verticalArrangement = Arrangement.spacedBy(rowGap),
+        ) {
+            KeypadRow {
+                DigitKey("7", keyHeight, digitFontSize) { haptics.tap(); onDigit('7') }
+                DigitKey("8", keyHeight, digitFontSize) { haptics.tap(); onDigit('8') }
+                DigitKey("9", keyHeight, digitFontSize) { haptics.tap(); onDigit('9') }
+                ActionKey(
+                    label = "C",
+                    contentDescription = "Clear",
+                    keyHeight = keyHeight,
+                    container = MaterialTheme.colorScheme.errorContainer,
+                    content = MaterialTheme.colorScheme.onErrorContainer,
+                ) { haptics.tap(); onClear() }
+            }
+            KeypadRow {
+                DigitKey("4", keyHeight, digitFontSize) { haptics.tap(); onDigit('4') }
+                DigitKey("5", keyHeight, digitFontSize) { haptics.tap(); onDigit('5') }
+                DigitKey("6", keyHeight, digitFontSize) { haptics.tap(); onDigit('6') }
+                ActionKey(
+                    icon = true,
+                    contentDescription = "Backspace",
+                    keyHeight = keyHeight,
+                    container = palette.container,
+                    content = palette.onContainer,
+                ) { haptics.tap(); onBackspace() }
+            }
+            KeypadRow {
+                DigitKey("1", keyHeight, digitFontSize) { haptics.tap(); onDigit('1') }
+                DigitKey("2", keyHeight, digitFontSize) { haptics.tap(); onDigit('2') }
+                DigitKey("3", keyHeight, digitFontSize) { haptics.tap(); onDigit('3') }
+                ActionKey(
+                    label = "+/−",
+                    contentDescription = "Toggle sign",
+                    keyHeight = keyHeight,
+                    container = palette.container,
+                    content = palette.onContainer,
+                ) { haptics.tap(); onToggleSign() }
+            }
+            KeypadRow {
+                DigitKey("0", keyHeight, digitFontSize) { haptics.tap(); onDigit('0') }
+                DigitKey("00", keyHeight, digitFontSize) { haptics.tap(); onDigit('0'); onDigit('0') }
+                DigitKey(decimalSeparator.toString(), keyHeight, digitFontSize) { haptics.tap(); onDecimal() }
+                Box(Modifier.weight(1f))
+            }
         }
     }
 }
@@ -121,24 +136,26 @@ private fun KeypadRow(content: @Composable androidx.compose.foundation.layout.Ro
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.DigitKey(
     label: String,
+    keyHeight: Dp,
+    digitFontSize: TextUnit,
     onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
         modifier = Modifier
             .weight(1f)
-            .heightIn(min = 46.dp)
+            .height(keyHeight)
             .semantics { contentDescription = label },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
         tonalElevation = 1.dp,
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Medium,
-                fontSize = 24.sp,
+                fontSize = digitFontSize,
+                maxLines = 1,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
@@ -148,6 +165,7 @@ private fun androidx.compose.foundation.layout.RowScope.DigitKey(
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.ActionKey(
     contentDescription: String,
+    keyHeight: Dp,
     container: Color,
     content: Color,
     label: String? = null,
@@ -158,24 +176,25 @@ private fun androidx.compose.foundation.layout.RowScope.ActionKey(
         onClick = onClick,
         modifier = Modifier
             .weight(1f)
-            .heightIn(min = 46.dp)
+            .height(keyHeight)
             .semantics { this.contentDescription = contentDescription },
         shape = RoundedCornerShape(16.dp),
         color = container,
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             if (icon) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Backspace,
                     contentDescription = null,
                     tint = content,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size((keyHeight.value * 0.45f).dp),
                 )
             } else {
                 Text(
                     text = label.orEmpty(),
-                    style = MaterialTheme.typography.titleLarge,
+                    fontSize = fixedSp((keyHeight.value * 0.36f).coerceIn(12f, 22f)),
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
                     color = content,
                 )
             }
