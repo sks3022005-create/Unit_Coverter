@@ -32,7 +32,7 @@ internal val EnergyCategory = UnitCategory(
             listOf("cal", "calorie", "calories", "cal_th"),
             Linear(bd("4.184"))),               // exact, IUPAC
         UnitDef("kilocalorie", "kcal", "Kilocalorie",
-            listOf("kcal", "kilocalorie", "kilocalories", "cal", "food calorie", "large calorie", "Cal"),
+            listOf("kcal", "kilocalorie", "kilocalories", "food calorie", "large calorie"),
             Linear(bd("4184"))),
         UnitDef("calorie_it", "cal_IT", "Calorie (International Table)",
             listOf("cal it", "calorie it", "it calorie"),

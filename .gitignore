@@ -19,3 +19,16 @@ local.properties
 *.jks
 google-services.json
 firebase-service-account*.json
+
+# Base64-encoded copies of the same secrets (used to seed CI secrets)
+keystore_base64*.txt
+service_account*.txt
+service_account*.json
+
+# Local signing credentials
+keystore.properties
+
+# Google Cloud / Firebase service-account keys, e.g.
+# unit-converter-d39ea-ccc532ace54f.json
+unit-converter-*.json
+*-*-????????????????????????????????.json

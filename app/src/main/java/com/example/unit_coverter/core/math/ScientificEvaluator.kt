@@ -129,6 +129,15 @@ object ScientificEvaluator {
         private fun parseIdentifier(): Double {
             val start = pos
             while (pos < src.length && src[pos].isLetter()) pos++
+            // Function names may end in digits (log2). Consume trailing digits only
+            // when doing so is followed by '(' — otherwise "pi2" style juxtaposition
+            // would be swallowed into the name and reported as an unknown function.
+            val letterEnd = pos
+            var digitEnd = pos
+            while (digitEnd < src.length && src[digitEnd].isDigit()) digitEnd++
+            if (digitEnd > letterEnd && digitEnd < src.length && src[digitEnd] == '(') {
+                pos = digitEnd
+            }
             val name = src.substring(start, pos)
 
             // Constants (no parentheses).

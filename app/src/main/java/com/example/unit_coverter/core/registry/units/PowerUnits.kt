@@ -36,7 +36,7 @@ internal val PowerCategory = UnitCategory(
             listOf("hp", "horsepower", "mechanical hp", "us hp", "hp mech"),
             Linear(HP_MECH_W)),                 // 550 ft·lbf/s ≈ 745.69987 W
         UnitDef("hp_metric", "PS", "Horsepower (Metric)",
-            listOf("ps", "metric hp", "cv", "pferdestärke", "ch", "pk", "hp metric"),
+            listOf("ps", "metric hp", "cv", "pferdestärke", "pk", "hp metric"),
             Linear(HP_METRIC_W)),               // 75 kgf·m/s = 735.49875 W (exact)
         UnitDef("hp_elec", "hp(E)", "Horsepower (Electrical)",
             listOf("hp electric", "hp elec", "electrical hp"),

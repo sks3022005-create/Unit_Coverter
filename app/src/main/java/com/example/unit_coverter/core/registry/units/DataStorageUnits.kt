@@ -15,7 +15,7 @@ internal val DataStorageCategory = UnitCategory(
     baseUnitId = "byte",
     units = listOf(
         UnitDef("bit", "bit", "Bit",
-            listOf("bit", "bits", "b"),
+            listOf("bit", "bits"),
             Linear(bd("0.125"))),               // 1/8 byte
         UnitDef("byte", "B", "Byte",
             listOf("b", "byte", "bytes"),
@@ -54,7 +54,7 @@ internal val DataStorageCategory = UnitCategory(
             Linear(bd("1125899906842624"))),
         // --- network (bits, SI) ---
         UnitDef("kilobit", "Kbit", "Kilobit",
-            listOf("kbit", "kilobit", "kilobits", "kb"),
+            listOf("kbit", "kilobit", "kilobits"),
             Linear(bd("125"))),                 // 1000 bits
         UnitDef("megabit", "Mbit", "Megabit",
             listOf("mbit", "megabit", "megabits"),

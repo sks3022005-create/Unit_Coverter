@@ -42,7 +42,7 @@ internal val LengthCategory = UnitCategory(
             listOf("in", "inch", "inches", "\""),
             Linear(bd("0.0254"))),
         UnitDef("nautical_mile", "nmi", "Nautical Mile",
-            listOf("nmi", "nm", "nautical mile", "nautical miles", "knot mile"),
+            listOf("nmi", "nautical mile", "nautical miles"),
             Linear(bd("1852"))),
         // --- astronomical ---
         UnitDef("light_year", "ly", "Light-Year",

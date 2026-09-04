@@ -15,7 +15,7 @@ internal val VolumeCategory = UnitCategory(
             listOf("l", "liter", "liters", "litre", "litres"),
             Linear(bd("1"))),
         UnitDef("milliliter", "mL", "Milliliter",
-            listOf("ml", "milliliter", "milliliters", "millilitre", "cc"),
+            listOf("ml", "milliliter", "milliliters", "millilitre"),
             Linear(bd("0.001"))),
         UnitDef("cubic_meter", "m³", "Cubic Meter",
             listOf("m3", "m³", "cubic meter", "cubic meters", "cubic metre"),
