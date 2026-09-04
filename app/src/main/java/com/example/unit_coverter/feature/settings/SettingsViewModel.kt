@@ -20,7 +20,10 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     data class UiState(
-        val isDynamicColorEnabled: Boolean = true,
+        // Must mirror UserPrefsDataStore's default. When these disagreed the
+        // toggle rendered ON for a frame while the app was actually using the
+        // brand palette, so the switch showed a state the app was not in.
+        val isDynamicColorEnabled: Boolean = false,
         val isForceDark: Boolean = false,
         val historyMaxEntries: Int = 500,
         val isUnlocked: Boolean = false,

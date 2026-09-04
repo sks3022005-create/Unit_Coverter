@@ -5,4 +5,7 @@
 
     <!-- Launch window background — matches the light Compose surface. -->
     <color name="brand_window_background">#FBF8FF</color>
+
+    <!-- Adaptive-icon background, sampled from the launcher artwork. -->
+    <color name="ic_launcher_background">#2B2C4A</color>
 </resources>

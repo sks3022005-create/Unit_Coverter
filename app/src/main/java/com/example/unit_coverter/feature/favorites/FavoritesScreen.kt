@@ -28,6 +28,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
+import com.example.unit_coverter.ui.components.categoryIcon
+import com.example.unit_coverter.ui.theme.categoryPalette
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -93,6 +100,22 @@ private fun FavoriteRow(
             .padding(start = 16.dp, top = 4.dp, bottom = 4.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val palette = categoryPalette(item.favorite.categoryId)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(palette.container, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = categoryIcon(item.favorite.categoryId),
+                contentDescription = null,
+                tint = palette.onContainer,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+
         Column(modifier = Modifier.weight(1f)) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -108,7 +131,8 @@ private fun FavoriteRow(
                 Text(
                     text = "→",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = palette.accent,
+                    fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = item.toUnitName,
@@ -120,8 +144,9 @@ private fun FavoriteRow(
             }
             Text(
                 text = item.categoryName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.accent,
+                fontWeight = FontWeight.Medium,
             )
         }
         IconButton(onClick = onRemove) {

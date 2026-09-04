@@ -1,7 +1,15 @@
 package com.example.unit_coverter.feature.converter
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,6 +38,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.Card
@@ -44,6 +53,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -64,10 +74,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -78,6 +91,8 @@ import com.example.unit_coverter.core.registry.UnitCategory
 import com.example.unit_coverter.core.registry.UnitDef
 import com.example.unit_coverter.ui.components.CategorySelector
 import com.example.unit_coverter.ui.components.UnitPickerBottomSheet
+import com.example.unit_coverter.ui.theme.CategoryPalette
+import com.example.unit_coverter.ui.theme.categoryPalette
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,6 +101,7 @@ fun ConverterScreen(
     modifier: Modifier = Modifier,
     onNavigateToCooking: () -> Unit = {},
     onNavigateToCustomUnits: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
     viewModel: ConverterViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -106,6 +122,16 @@ fun ConverterScreen(
     val clipboard = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
+
+    // The whole screen re-tints when the category changes. Animating each channel
+    // means the transition reads as one continuous shift rather than a hard cut.
+    val target = categoryPalette(state.selectedCategory?.id)
+    val accent by animateColorAsState(target.accent, tween(420), label = "accent")
+    val accentSecondary by animateColorAsState(target.accentSecondary, tween(420), label = "accent2")
+    val container by animateColorAsState(target.container, tween(420), label = "container")
+    val onContainer by animateColorAsState(target.onContainer, tween(420), label = "onContainer")
+    val palette = CategoryPalette(accent, accentSecondary, container, onContainer)
 
     // Quarter-turn nudge on the swap control each time the units flip.
     var swapCount by rememberSaveable { mutableStateOf(0) }
@@ -121,6 +147,9 @@ fun ConverterScreen(
             TopAppBar(
                 title = { Text("Convert", style = MaterialTheme.typography.titleLarge) },
                 actions = {
+                    IconButton(onClick = onNavigateToSearch) {
+                        Icon(Icons.Default.Search, contentDescription = "Search units")
+                    }
                     IconButton(onClick = onNavigateToCooking) {
                         Icon(Icons.Default.Kitchen, contentDescription = "Cooking converter")
                     }
@@ -140,7 +169,7 @@ fun ConverterScreen(
                                 "Add to favorites"
                             },
                             tint = if (state.isFavorite) {
-                                MaterialTheme.colorScheme.primary
+                                palette.accent
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
@@ -192,6 +221,7 @@ fun ConverterScreen(
                 onInputChanged = { viewModel.onEvent(ConverterEvent.InputChanged(it)) },
                 onUnitPickerClicked = { showFromPicker = true },
                 onClearClicked = { viewModel.onEvent(ConverterEvent.ClearInput) },
+                palette = palette,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
@@ -206,12 +236,13 @@ fun ConverterScreen(
             ) {
                 FilledIconButton(
                     onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         swapCount++
                         viewModel.onEvent(ConverterEvent.SwapUnits)
                     },
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        containerColor = palette.container,
+                        contentColor = palette.onContainer,
                     ),
                     modifier = Modifier
                         .size(48.dp)
@@ -231,10 +262,12 @@ fun ConverterScreen(
                 category = state.selectedCategory,
                 resultText = state.resultText,
                 hasError = state.errorMessage != null,
+                palette = palette,
                 onUnitPickerClicked = { showToPicker = true },
                 onCopy = {
                     val value = state.resultText
                     if (value.isNotEmpty()) {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         clipboard.setText(AnnotatedString(value))
                         scope.launch {
                             snackbarHostState.showSnackbar("Copied $value")
@@ -312,6 +345,7 @@ private fun InputCard(
     onInputChanged: (String) -> Unit,
     onUnitPickerClicked: () -> Unit,
     onClearClicked: () -> Unit,
+    palette: CategoryPalette,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -336,7 +370,7 @@ private fun InputCard(
                     unit = unit,
                     category = category,
                     onClick = onUnitPickerClicked,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = palette.accent,
                 )
             }
 
@@ -371,6 +405,10 @@ private fun InputCard(
                 },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = palette.accent,
+                    cursorColor = palette.accent,
+                ),
             )
 
             // Error text is animated in so the layout doesn't jump on every keystroke.
@@ -420,6 +458,7 @@ private fun ResultCard(
     category: UnitCategory?,
     resultText: String,
     hasError: Boolean,
+    palette: CategoryPalette,
     onUnitPickerClicked: () -> Unit,
     onCopy: () -> Unit,
     modifier: Modifier = Modifier,
@@ -429,11 +468,9 @@ private fun ResultCard(
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
+        Box(modifier = Modifier.background(palette.softGradient, MaterialTheme.shapes.large)) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -443,13 +480,13 @@ private fun ResultCard(
                 Text(
                     text = "TO",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                    color = palette.onContainer.copy(alpha = 0.75f),
                 )
                 UnitSelectorButton(
                     unit = unit,
                     category = category,
                     onClick = onUnitPickerClicked,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    contentColor = palette.onContainer,
                 )
             }
 
@@ -460,20 +497,30 @@ private fun ResultCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (hasResult) resultText else "—",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontFamily = FontFamily.SansSerif,
-                        color = if (hasResult) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f)
+                    AnimatedContent(
+                        targetState = if (hasResult) resultText else "—",
+                        transitionSpec = {
+                            (slideInVertically { it / 3 } + fadeIn()) togetherWith
+                                (slideOutVertically { -it / 3 } + fadeOut())
                         },
-                        maxLines = 2,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { contentDescription = "Result value" },
-                    )
+                        label = "resultValue",
+                    ) { value ->
+                        Text(
+                            text = value,
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = FontFamily.SansSerif,
+                            color = if (hasResult) {
+                                palette.onContainer
+                            } else {
+                                palette.onContainer.copy(alpha = 0.4f)
+                            },
+                            maxLines = 2,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { contentDescription = "Result value" },
+                        )
+                    }
                 }
 
                 AnimatedVisibility(visible = hasResult, enter = fadeIn(), exit = fadeOut()) {
@@ -481,7 +528,7 @@ private fun ResultCard(
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
                             contentDescription = "Copy result",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            tint = palette.onContainer,
                         )
                     }
                 }
@@ -491,11 +538,12 @@ private fun ResultCard(
                 Text(
                     text = unit!!.symbol,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                    color = palette.onContainer.copy(alpha = 0.8f),
                 )
             }
 
             Spacer(Modifier.height(4.dp))
+        }
         }
     }
 }

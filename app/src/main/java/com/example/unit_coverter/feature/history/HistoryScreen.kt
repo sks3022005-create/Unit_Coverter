@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -32,6 +33,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
+import com.example.unit_coverter.ui.components.categoryIcon
+import com.example.unit_coverter.ui.theme.categoryPalette
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -126,6 +133,24 @@ private fun HistoryRow(item: HistoryItem, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Colour-coded category badge: the row is scannable by hue before the
+        // text is even read.
+        val palette = categoryPalette(item.record.categoryId)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(palette.container, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = categoryIcon(item.record.categoryId),
+                contentDescription = null,
+                tint = palette.onContainer,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+
         Column(modifier = Modifier.weight(1f)) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -141,7 +166,8 @@ private fun HistoryRow(item: HistoryItem, onClick: () -> Unit) {
                 Text(
                     text = "→",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = palette.accent,
+                    fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "${item.resultFormatted} ${item.toUnitName}",
@@ -155,8 +181,9 @@ private fun HistoryRow(item: HistoryItem, onClick: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = item.categoryName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.accent,
+                    fontWeight = FontWeight.Medium,
                 )
                 Text(
                     text = formatTimestamp(item.record.timestampMs),

@@ -19,6 +19,8 @@ sealed class Screen {
 
     @Serializable data object Cooking : Screen()
 
+    @Serializable data object Currency : Screen()
+
     /** Deep-link into a specific category (and optional unit pair) from search / favorites / widget. */
     @Serializable data class CategoryConverter(
         val categoryId: String,

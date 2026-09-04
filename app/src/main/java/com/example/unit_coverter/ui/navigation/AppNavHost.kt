@@ -2,6 +2,7 @@ package com.example.unit_coverter.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Functions
 import androidx.compose.material.icons.filled.History
@@ -25,6 +26,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.unit_coverter.feature.calculator.CalculatorScreen
 import com.example.unit_coverter.feature.converter.ConverterScreen
 import com.example.unit_coverter.feature.cooking.CookingScreen
+import com.example.unit_coverter.feature.currency.CurrencyScreen
 import com.example.unit_coverter.feature.customunit.AddEditCustomUnitScreen
 import com.example.unit_coverter.feature.customunit.CustomUnitsScreen
 import com.example.unit_coverter.feature.favorites.FavoritesScreen
@@ -43,7 +45,7 @@ private data class BottomNavItem(
 private val bottomNavItems = listOf(
     BottomNavItem(Screen.Converter, Screen.Converter::class, "Convert", Icons.Filled.Calculate),
     BottomNavItem(Screen.Calculator, Screen.Calculator::class, "Calc", Icons.Filled.Functions),
-    BottomNavItem(Screen.Search, Screen.Search::class, "Search", Icons.Filled.Search),
+    BottomNavItem(Screen.Currency, Screen.Currency::class, "Currency", Icons.Filled.CurrencyExchange),
     BottomNavItem(Screen.History, Screen.History::class, "History", Icons.Filled.History),
     BottomNavItem(Screen.Favorites, Screen.Favorites::class, "Favorites", Icons.Filled.Favorite),
     BottomNavItem(Screen.Settings, Screen.Settings::class, "Settings", Icons.Filled.Settings),
@@ -66,6 +68,10 @@ fun AppNavHost(
         navController.navigate(Screen.CustomUnits)
     }
 
+    fun navigateToSearch() {
+        navController.navigate(Screen.Search)
+    }
+
     NavHost(
         navController = navController,
         startDestination = Screen.Converter,
@@ -75,6 +81,7 @@ fun AppNavHost(
             ConverterScreen(
                 onNavigateToCooking = ::navigateToCooking,
                 onNavigateToCustomUnits = ::navigateToCustomUnits,
+                onNavigateToSearch = ::navigateToSearch,
             )
         }
 
@@ -82,10 +89,13 @@ fun AppNavHost(
             ConverterScreen(
                 onNavigateToCooking = ::navigateToCooking,
                 onNavigateToCustomUnits = ::navigateToCustomUnits,
+                onNavigateToSearch = ::navigateToSearch,
             )
         }
 
         composable<Screen.Calculator> { CalculatorScreen() }
+
+        composable<Screen.Currency> { CurrencyScreen() }
 
         composable<Screen.Cooking> {
             CookingScreen(onNavigateBack = { navController.popBackStack() })

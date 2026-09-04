@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Themed ("monochrome") launcher icon for Android 13+.
+
+  The launcher tints this single-colour silhouette with the user's wallpaper
+  palette, so it must be a vector with no colour of its own — the bitmap
+  foreground can't be reused here. Shape: two arrows chasing each other around a
+  circle, matching the launcher artwork's exchange motif.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Upper arc, sweeping clockwise, with an arrowhead at its right end. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30.5c-12.98,0 -23.5,10.52 -23.5,23.5h7c0,-9.11 7.39,-16.5 16.5,-16.5c4.62,0 8.8,1.9 11.8,4.96l-6.3,6.3h17.5v-17.5l-6.24,6.24C66.42,33.01 60.53,30.5 54,30.5z" />
+
+    <!-- Lower arc, sweeping counter-clockwise, arrowhead at its left end. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,77.5c12.98,0 23.5,-10.52 23.5,-23.5h-7c0,9.11 -7.39,16.5 -16.5,16.5c-4.62,0 -8.8,-1.9 -11.8,-4.96l6.3,-6.3H31v17.5l6.24,-6.24C41.58,74.99 47.47,77.5 54,77.5z" />
+</vector>
