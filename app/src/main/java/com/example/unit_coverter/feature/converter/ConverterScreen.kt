@@ -27,9 +27,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -211,12 +209,9 @@ fun ConverterScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Cards scroll if the display is short; the keypad below stays put.
-            Column(
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState()),
-            ) {
+            // Cards are static: input and result must both be visible without
+            // scrolling on any phone. No verticalScroll here by design — if a
+            // future change reintroduces it, the no-scroll guarantee breaks.
 
             // ── Input ────────────────────────────────────────────────────────
             InputCard(
@@ -285,8 +280,7 @@ fun ConverterScreen(
                     .padding(horizontal = 16.dp),
             )
 
-            Spacer(Modifier.height(8.dp))
-            }
+            Spacer(Modifier.weight(1f, fill = false))
 
             // The keypad fills the space the system IME used to cover, so the
             // result stays visible while the user types.
