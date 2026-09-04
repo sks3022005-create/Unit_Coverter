@@ -1,6 +1,14 @@
 package com.example.unit_coverter.feature.converter
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,22 +23,31 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.UnfoldMore
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -38,14 +55,22 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,6 +78,7 @@ import com.example.unit_coverter.core.registry.UnitCategory
 import com.example.unit_coverter.core.registry.UnitDef
 import com.example.unit_coverter.ui.components.CategorySelector
 import com.example.unit_coverter.ui.components.UnitPickerBottomSheet
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,11 +91,7 @@ fun ConverterScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     if (state.isLoading) {
-        Column(
-            modifier = modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
@@ -81,11 +103,23 @@ fun ConverterScreen(
     val fromSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val toSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val clipboard = LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Quarter-turn nudge on the swap control each time the units flip.
+    var swapCount by rememberSaveable { mutableStateOf(0) }
+    val swapRotation by animateFloatAsState(
+        targetValue = swapCount * 180f,
+        label = "swapRotation",
+    )
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Unit Converter") },
+                title = { Text("Convert", style = MaterialTheme.typography.titleLarge) },
                 actions = {
                     IconButton(onClick = onNavigateToCooking) {
                         Icon(Icons.Default.Kitchen, contentDescription = "Cooking converter")
@@ -95,10 +129,21 @@ fun ConverterScreen(
                         enabled = state.fromUnit != null && state.toUnit != null,
                     ) {
                         Icon(
-                            imageVector = if (state.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = if (state.isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (state.isFavorite) MaterialTheme.colorScheme.primary
-                                   else MaterialTheme.colorScheme.onSurface,
+                            imageVector = if (state.isFavorite) {
+                                Icons.Default.Favorite
+                            } else {
+                                Icons.Default.FavoriteBorder
+                            },
+                            contentDescription = if (state.isFavorite) {
+                                "Remove from favorites"
+                            } else {
+                                "Add to favorites"
+                            },
+                            tint = if (state.isFavorite) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                         )
                     }
                     IconButton(onClick = { menuExpanded = true }) {
@@ -127,7 +172,7 @@ fun ConverterScreen(
                 .imePadding()
                 .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
 
             CategorySelector(
                 categories = state.categories,
@@ -136,62 +181,75 @@ fun ConverterScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
 
-            // From card
-            ConversionPanel(
-                label = "From",
+            // ── Input ────────────────────────────────────────────────────────
+            InputCard(
                 unit = state.fromUnit,
                 category = state.selectedCategory,
                 inputText = state.inputText,
+                errorMessage = state.errorMessage,
                 onInputChanged = { viewModel.onEvent(ConverterEvent.InputChanged(it)) },
                 onUnitPickerClicked = { showFromPicker = true },
                 onClearClicked = { viewModel.onEvent(ConverterEvent.ClearInput) },
-                errorMessage = state.errorMessage,
-                isInput = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
             )
 
-            Spacer(Modifier.height(8.dp))
-
-            // Swap button
+            // ── Swap ─────────────────────────────────────────────────────────
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.Center,
             ) {
-                FilledTonalIconButton(
-                    onClick = { viewModel.onEvent(ConverterEvent.SwapUnits) },
-                    modifier = Modifier.semantics { contentDescription = "Swap units" },
+                FilledIconButton(
+                    onClick = {
+                        swapCount++
+                        viewModel.onEvent(ConverterEvent.SwapUnits)
+                    },
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                    modifier = Modifier
+                        .size(48.dp)
+                        .semantics { contentDescription = "Swap units" },
                 ) {
-                    Icon(Icons.Default.SwapVert, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Default.SwapVert,
+                        contentDescription = null,
+                        modifier = Modifier.rotate(swapRotation),
+                    )
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            // To card
-            ConversionPanel(
-                label = "To",
+            // ── Result ───────────────────────────────────────────────────────
+            ResultCard(
                 unit = state.toUnit,
                 category = state.selectedCategory,
-                inputText = state.resultText,
-                onInputChanged = {},
+                resultText = state.resultText,
+                hasError = state.errorMessage != null,
                 onUnitPickerClicked = { showToPicker = true },
-                onClearClicked = {},
-                errorMessage = null,
-                isInput = false,
+                onCopy = {
+                    val value = state.resultText
+                    if (value.isNotEmpty()) {
+                        clipboard.setText(AnnotatedString(value))
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Copied $value")
+                        }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
         }
     }
 
-    // Bottom sheets
     if (showFromPicker && state.selectedCategory != null) {
         UnitPickerBottomSheet(
             category = state.selectedCategory!!,
@@ -213,88 +271,231 @@ fun ConverterScreen(
     }
 }
 
+/** The unit selector shown at the top of each card. */
 @Composable
-private fun ConversionPanel(
-    label: String,
+private fun UnitSelectorButton(
+    unit: UnitDef?,
+    category: UnitCategory?,
+    onClick: () -> Unit,
+    contentColor: Color,
+) {
+    TextButton(onClick = onClick, enabled = category != null) {
+        Text(
+            text = unit?.displayName ?: "Select unit",
+            style = MaterialTheme.typography.titleSmall,
+            color = contentColor,
+        )
+        if (!unit?.symbol.isNullOrEmpty()) {
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = "(${unit!!.symbol})",
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor.copy(alpha = 0.7f),
+            )
+        }
+        Spacer(Modifier.width(2.dp))
+        Icon(
+            imageVector = Icons.Default.UnfoldMore,
+            contentDescription = null,
+            tint = contentColor.copy(alpha = 0.7f),
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+@Composable
+private fun InputCard(
     unit: UnitDef?,
     category: UnitCategory?,
     inputText: String,
+    errorMessage: String?,
     onInputChanged: (String) -> Unit,
     onUnitPickerClicked: () -> Unit,
     onClearClicked: () -> Unit,
-    errorMessage: String?,
-    isInput: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    ElevatedCard(modifier = modifier) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "FROM",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                TextButton(
+                UnitSelectorButton(
+                    unit = unit,
+                    category = category,
                     onClick = onUnitPickerClicked,
-                    enabled = category != null,
-                ) {
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = onInputChanged,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = "Input value" },
+                textStyle = MaterialTheme.typography.headlineSmall,
+                placeholder = {
                     Text(
-                        text = unit?.displayName ?: "Select unit",
-                        style = MaterialTheme.typography.titleSmall,
+                        text = "0",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     )
-                    if (unit?.symbol?.isNotEmpty() == true) {
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "(${unit.symbol})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                },
+                isError = errorMessage != null,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done,
+                ),
+                trailingIcon = {
+                    if (inputText.isNotEmpty()) {
+                        IconButton(onClick = onClearClicked) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear input",
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium,
+            )
+
+            // Error text is animated in so the layout doesn't jump on every keystroke.
+            AnimatedVisibility(
+                visible = errorMessage != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(top = 8.dp, start = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = errorMessage.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Try  5 ft 11 in to cm  ·  2^10  ·  32°F",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+    }
+}
+
+/**
+ * The answer. This is the reason the app exists, so it gets the strongest
+ * surface, the largest type and a one-tap copy action — rather than being a
+ * read-only text field that looks like something the user failed to edit.
+ */
+@Composable
+private fun ResultCard(
+    unit: UnitDef?,
+    category: UnitCategory?,
+    resultText: String,
+    hasError: Boolean,
+    onUnitPickerClicked: () -> Unit,
+    onCopy: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val hasResult = resultText.isNotEmpty() && !hasError
+
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "TO",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                )
+                UnitSelectorButton(
+                    unit = unit,
+                    category = category,
+                    onClick = onUnitPickerClicked,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (hasResult) resultText else "—",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontFamily = FontFamily.SansSerif,
+                        color = if (hasResult) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f)
+                        },
+                        maxLines = 2,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentDescription = "Result value" },
+                    )
+                }
+
+                AnimatedVisibility(visible = hasResult, enter = fadeIn(), exit = fadeOut()) {
+                    IconButton(onClick = onCopy) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy result",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            if (isInput) {
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = onInputChanged,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = "Input value" },
-                    placeholder = { Text("123.4  •  2^10  •  5 ft 11 in to cm") },
-                    isError = errorMessage != null,
-                    supportingText = errorMessage?.let { { Text(it) } },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Done,
-                    ),
-                    trailingIcon = if (inputText.isNotEmpty()) {
-                        {
-                            TextButton(onClick = onClearClicked) {
-                                Text("Clear")
-                            }
-                        }
-                    } else null,
-                    singleLine = true,
-                )
-            } else {
-                // Read-only result
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = {},
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = "Result value" },
-                    placeholder = { Text("Result") },
-                    readOnly = true,
-                    singleLine = true,
+            if (!unit?.symbol.isNullOrEmpty() && hasResult) {
+                Text(
+                    text = unit!!.symbol,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                 )
             }
+
+            Spacer(Modifier.height(4.dp))
         }
     }
 }
