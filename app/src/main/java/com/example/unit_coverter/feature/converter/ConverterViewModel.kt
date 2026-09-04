@@ -128,7 +128,42 @@ class ConverterViewModel @Inject constructor(
             is ConverterEvent.ClearInput -> {
                 _state.update { it.copy(inputText = "", resultText = "", errorMessage = null, nlpValue = null) }
             }
+
+            // ── In-app keypad ────────────────────────────────────────────────
+            // Each key edits the raw text then reconverts immediately, so the
+            // result tracks the entry with no "equals" step.
+            is ConverterEvent.AppendDigit -> editInput { it + event.digit }
+
+            is ConverterEvent.AppendDecimal -> editInput { current ->
+                // One decimal point only; a leading point becomes "0.".
+                val body = current.removePrefix("-")
+                when {
+                    body.contains('.') -> current
+                    body.isEmpty() -> if (current.startsWith("-")) "-0." else "0."
+                    else -> "$current."
+                }
+            }
+
+            is ConverterEvent.Backspace -> editInput { it.dropLast(1) }
+
+            is ConverterEvent.ToggleSign -> editInput { current ->
+                if (current.startsWith("-")) current.removePrefix("-") else "-$current"
+            }
         }
+    }
+
+    /**
+     * Applies [transform] to the current input and reconverts.
+     *
+     * Routed through the same NLP/expression path as typing so keypad entry and
+     * text entry can never diverge.
+     */
+    private fun editInput(transform: (String) -> String) {
+        val updated = transform(_state.value.inputText)
+        _state.update { it.copy(inputText = updated, errorMessage = null, nlpValue = null) }
+        val nlp = NlpParser.parse(updated)
+        if (nlp != null) applyNlpResult(nlp) else performConversionIfReady()
+        scheduleHistoryRecord()
     }
 
     private fun applyCategory(

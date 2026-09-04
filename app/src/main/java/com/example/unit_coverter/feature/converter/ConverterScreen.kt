@@ -90,6 +90,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.unit_coverter.core.registry.UnitCategory
 import com.example.unit_coverter.core.registry.UnitDef
 import com.example.unit_coverter.ui.components.CategorySelector
+import com.example.unit_coverter.ui.components.NumericKeypad
 import com.example.unit_coverter.ui.components.UnitPickerBottomSheet
 import com.example.unit_coverter.ui.theme.CategoryPalette
 import com.example.unit_coverter.ui.theme.categoryPalette
@@ -197,9 +198,7 @@ fun ConverterScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .imePadding()
-                .verticalScroll(rememberScrollState()),
+                .padding(innerPadding),
         ) {
             Spacer(Modifier.height(8.dp))
 
@@ -210,7 +209,14 @@ fun ConverterScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
+
+            // Cards scroll if the display is short; the keypad below stays put.
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+            ) {
 
             // ── Input ────────────────────────────────────────────────────────
             InputCard(
@@ -279,7 +285,22 @@ fun ConverterScreen(
                     .padding(horizontal = 16.dp),
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(8.dp))
+            }
+
+            // The keypad fills the space the system IME used to cover, so the
+            // result stays visible while the user types.
+            NumericKeypad(
+                onDigit = { viewModel.onEvent(ConverterEvent.AppendDigit(it)) },
+                onDecimal = { viewModel.onEvent(ConverterEvent.AppendDecimal) },
+                onBackspace = { viewModel.onEvent(ConverterEvent.Backspace) },
+                onClear = { viewModel.onEvent(ConverterEvent.ClearInput) },
+                onToggleSign = { viewModel.onEvent(ConverterEvent.ToggleSign) },
+                palette = palette,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(12.dp))
         }
     }
 
@@ -305,6 +326,19 @@ fun ConverterScreen(
 }
 
 /** The unit selector shown at the top of each card. */
+/**
+ * Caption under the input field.
+ *
+ * Only Length understands compound natural-language entry ("5 ft 11 in"), so
+ * advertising that syntax on Energy, Power, Force, Time or Speed just tells the
+ * user about something that won't work there. Every other category gets a plain
+ * statement of what the keypad accepts.
+ */
+private fun inputHintFor(categoryId: String?): String = when (categoryId) {
+    "length" -> "Enter any number or decimal  ·  or type 5 ft 11 in"
+    else -> "Enter any number or decimal"
+}
+
 @Composable
 private fun UnitSelectorButton(
     unit: UnitDef?,
@@ -374,9 +408,14 @@ private fun InputCard(
                 )
             }
 
+            // The value is driven by the in-app keypad, so the field is a display
+            // rather than an editable text box: tapping it must not raise the
+            // system IME over the result. readOnly keeps selection and a11y
+            // behaviour while suppressing the soft keyboard entirely.
             OutlinedTextField(
                 value = inputText,
-                onValueChange = onInputChanged,
+                onValueChange = {},
+                readOnly = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { contentDescription = "Input value" },
@@ -389,10 +428,6 @@ private fun InputCard(
                     )
                 },
                 isError = errorMessage != null,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Done,
-                ),
                 trailingIcon = {
                     if (inputText.isNotEmpty()) {
                         IconButton(onClick = onClearClicked) {
@@ -438,7 +473,7 @@ private fun InputCard(
 
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Try  5 ft 11 in to cm  ·  2^10  ·  32°F",
+                text = inputHintFor(category?.id),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                 modifier = Modifier.padding(start = 4.dp),
@@ -496,7 +531,7 @@ private fun ResultCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(modifier = Modifier.weight(1f)) {
+                Box(modifier = Modifier.weight(1f, fill = false)) {
                     AnimatedContent(
                         targetState = if (hasResult) resultText else "—",
                         transitionSpec = {
@@ -507,7 +542,7 @@ private fun ResultCard(
                     ) { value ->
                         Text(
                             text = value,
-                            style = MaterialTheme.typography.displaySmall,
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = FontFamily.SansSerif,
                             color = if (hasResult) {
@@ -515,12 +550,21 @@ private fun ResultCard(
                             } else {
                                 palette.onContainer.copy(alpha = 0.4f)
                             },
-                            maxLines = 2,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .semantics { contentDescription = "Result value" },
+                            maxLines = 1,
+                            modifier = Modifier.semantics {
+                                contentDescription = "Result value"
+                            },
                         )
                     }
+                }
+
+                if (!unit?.symbol.isNullOrEmpty() && hasResult) {
+                    Text(
+                        text = unit!!.symbol,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = palette.onContainer.copy(alpha = 0.85f),
+                        modifier = Modifier.padding(start = 6.dp, end = 4.dp),
+                    )
                 }
 
                 AnimatedVisibility(visible = hasResult, enter = fadeIn(), exit = fadeOut()) {
@@ -534,15 +578,7 @@ private fun ResultCard(
                 }
             }
 
-            if (!unit?.symbol.isNullOrEmpty() && hasResult) {
-                Text(
-                    text = unit!!.symbol,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = palette.onContainer.copy(alpha = 0.8f),
-                )
-            }
-
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(2.dp))
         }
         }
     }

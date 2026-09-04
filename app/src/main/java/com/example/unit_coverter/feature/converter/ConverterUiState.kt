@@ -29,4 +29,16 @@ sealed interface ConverterEvent {
     data object SwapUnits : ConverterEvent
     data object ToggleFavorite : ConverterEvent
     data object ClearInput : ConverterEvent
+
+    /** Keypad: append a digit. */
+    data class AppendDigit(val digit: Char) : ConverterEvent
+
+    /** Keypad: append a decimal point (ignored if one is already present). */
+    data object AppendDecimal : ConverterEvent
+
+    /** Keypad: delete the last character. */
+    data object Backspace : ConverterEvent
+
+    /** Keypad: flip the sign of the current entry. */
+    data object ToggleSign : ConverterEvent
 }
