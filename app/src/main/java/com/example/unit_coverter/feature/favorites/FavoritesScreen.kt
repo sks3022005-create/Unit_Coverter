@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -67,6 +68,9 @@ fun FavoritesScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
+                // The app-level Scaffold no longer pads the NavHost, so the list must
+                // clear the bottom nav bar itself or its last row sits under it.
+                contentPadding = PaddingValues(bottom = 96.dp),
             ) {
                 items(uiState.items, key = { it.favorite.id }) { item ->
                     FavoriteRow(

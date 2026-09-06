@@ -147,7 +147,10 @@ fun ConverterScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Convert", style = MaterialTheme.typography.titleLarge) },
+                // 48dp instead of the 64dp default: the title and actions are a single
+                // row of icons, so the extra height was empty space pushing the cards down.
+                expandedHeight = 48.dp,
+                title = { Text("Convert", style = MaterialTheme.typography.titleMedium) },
                 actions = {
                     IconButton(onClick = onNavigateToSearch) {
                         Icon(Icons.Default.Search, contentDescription = "Search units")

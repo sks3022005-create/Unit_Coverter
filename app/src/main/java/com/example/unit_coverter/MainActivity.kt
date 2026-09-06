@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,17 +51,12 @@ private fun AppContent() {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = { AppBottomBar(navController = navController) },
-    ) { innerPadding ->
-        // Only the top inset is padded here. Padding the NavHost by the full innerPadding
-        // permanently reserves the bottom bar's height (~250px), and a screen that then
-        // calls imePadding() has that subtracted a second time when the keyboard opens --
-        // even though the bar is hidden behind the keyboard. That double subtraction is
-        // what clipped the converter's result card down to its header. Screens consume the
-        // bottom inset themselves (as trailing space that can scroll away), so the keyboard
-        // and the bar never both claim the same pixels.
-        AppNavHost(
-            navController = navController,
-            modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
-        )
+        // Let destinations draw under the bars. Each screen owns a Scaffold whose
+        // TopAppBar already applies the status-bar inset, so forwarding this Scaffold's
+        // top padding as well counted it twice and left a dead ~128px band above every
+        // title. Screens consume the insets they need themselves.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { _ ->
+        AppNavHost(navController = navController)
     }
 }

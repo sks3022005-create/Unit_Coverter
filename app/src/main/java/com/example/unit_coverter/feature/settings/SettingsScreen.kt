@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -67,6 +68,9 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
+            // The app-level Scaffold no longer pads the NavHost, so the list must clear
+            // the bottom nav bar itself or its last row sits under it.
+            contentPadding = PaddingValues(bottom = 96.dp),
         ) {
             // ── Appearance ──────────────────────────────────────────────────
             item { SectionHeader("Appearance") }
