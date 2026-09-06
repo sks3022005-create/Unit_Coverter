@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -196,7 +196,7 @@ fun ConverterScreen(
             )
         },
     ) { innerPadding ->
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 // The NavHost now only pads the top, so this Scaffold's innerPadding carries
@@ -204,18 +204,20 @@ fun ConverterScreen(
                 // that when the keyboard opens it scrolls away instead of shrinking the
                 // viewport -- which is what sliced the result card down to its header.
                 .padding(top = innerPadding.calculateTopPadding())
-                .imePadding()
-                .verticalScroll(rememberScrollState()),
+                .imePadding(),
         ) {
-            Spacer(Modifier.height(4.dp))
-
             CategorySelector(
                 categories = state.categories,
                 selectedCategory = state.selectedCategory,
                 onCategorySelected = { viewModel.onEvent(ConverterEvent.SelectCategory(it)) },
-                modifier = Modifier.fillMaxWidth(),
             )
 
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState()),
+            ) {
             Spacer(Modifier.height(4.dp))
 
             // Cards are wrap-content. The keypad below takes ALL remaining height
@@ -292,6 +294,7 @@ fun ConverterScreen(
             // for. As content it scrolls away under the keyboard rather than shrinking the
             // viewport, so the result card is never clipped.
             Spacer(Modifier.height(104.dp))
+            }
         }
     }
 

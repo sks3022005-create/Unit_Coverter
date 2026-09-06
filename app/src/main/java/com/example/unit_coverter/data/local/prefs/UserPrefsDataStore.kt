@@ -24,6 +24,12 @@ class UserPrefsDataStore @Inject constructor(
     val defaultCategoryId: Flow<String> =
         store.data.map { it[Keys.DEFAULT_CATEGORY] ?: "length" }
 
+    val lastFromUnitId: Flow<String?> =
+        store.data.map { it[Keys.LAST_FROM_UNIT] }
+
+    val lastToUnitId: Flow<String?> =
+        store.data.map { it[Keys.LAST_TO_UNIT] }
+
     // Default OFF so the branded palette is what users see out of the box; they can
     // opt into Material You (wallpaper-based dynamic color) from Settings.
     val isDynamicColorEnabled: Flow<Boolean> =
@@ -37,6 +43,15 @@ class UserPrefsDataStore @Inject constructor(
 
     suspend fun setDefaultCategoryId(id: String) {
         store.edit { it[Keys.DEFAULT_CATEGORY] = id }
+    }
+
+    /** Remember the last Convert pair so the next launch opens on it. */
+    suspend fun setLastConversion(categoryId: String, fromUnitId: String, toUnitId: String) {
+        store.edit {
+            it[Keys.DEFAULT_CATEGORY] = categoryId
+            it[Keys.LAST_FROM_UNIT] = fromUnitId
+            it[Keys.LAST_TO_UNIT] = toUnitId
+        }
     }
 
     suspend fun setDynamicColorEnabled(enabled: Boolean) {
@@ -53,6 +68,8 @@ class UserPrefsDataStore @Inject constructor(
 
     private object Keys {
         val DEFAULT_CATEGORY = stringPreferencesKey("default_category")
+        val LAST_FROM_UNIT = stringPreferencesKey("last_from_unit")
+        val LAST_TO_UNIT = stringPreferencesKey("last_to_unit")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val FORCE_DARK = booleanPreferencesKey("force_dark")
         val HISTORY_MAX = stringPreferencesKey("history_max")

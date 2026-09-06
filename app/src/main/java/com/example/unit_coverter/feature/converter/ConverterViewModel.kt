@@ -82,21 +82,32 @@ class ConverterViewModel @Inject constructor(
                 val defaultCatId = userPrefsDataStore.defaultCategoryId.first()
                 val cat = UnitRegistry.categoryById(defaultCatId)
                     ?: UnitRegistry.categories.firstOrNull()
-                if (cat != null) applyCategory(cat)
+                if (cat != null) {
+                    val fromId = userPrefsDataStore.lastFromUnitId.first()
+                    val toId = userPrefsDataStore.lastToUnitId.first()
+                    val from = fromId?.let { id -> cat.units.firstOrNull { it.id == id } }
+                    val to = toId?.let { id -> cat.units.firstOrNull { it.id == id } }
+                    applyCategory(cat, overrideFrom = from, overrideTo = to)
+                }
             }
         }
     }
 
     fun onEvent(event: ConverterEvent) {
         when (event) {
-            is ConverterEvent.SelectCategory -> applyCategory(event.category)
+            is ConverterEvent.SelectCategory -> {
+                applyCategory(event.category)
+                persistLastConversion()
+            }
             is ConverterEvent.SelectFromUnit -> {
                 _state.update { it.copy(fromUnit = event.unit) }
                 performConversionIfReady()
+                persistLastConversion()
             }
             is ConverterEvent.SelectToUnit -> {
                 _state.update { it.copy(toUnit = event.unit) }
                 performConversionIfReady()
+                persistLastConversion()
             }
             is ConverterEvent.InputChanged -> {
                 _state.update { it.copy(inputText = event.text, errorMessage = null, nlpValue = null) }
@@ -115,6 +126,7 @@ class ConverterViewModel @Inject constructor(
                     )
                 }
                 performConversionIfReady()
+                persistLastConversion()
             }
             is ConverterEvent.ToggleFavorite -> {
                 val s = _state.value
@@ -190,6 +202,17 @@ class ConverterViewModel @Inject constructor(
         performConversionIfReady()
     }
 
+    /** Remember the open pair so the next launch lands on it, not Length. */
+    private fun persistLastConversion() {
+        val s = _state.value
+        val cat = s.selectedCategory ?: return
+        val from = s.fromUnit ?: return
+        val to = s.toUnit ?: return
+        viewModelScope.launch {
+            userPrefsDataStore.setLastConversion(cat.id, from.id, to.id)
+        }
+    }
+
     private fun applyNlpResult(result: NlpResult) {
         val cat = UnitRegistry.categoryById(result.categoryId) ?: run {
             performConversionIfReady(); return
@@ -212,6 +235,7 @@ class ConverterViewModel @Inject constructor(
             )
         }
         performConversionIfReady()
+        persistLastConversion()
     }
 
     private fun performConversionIfReady() {
