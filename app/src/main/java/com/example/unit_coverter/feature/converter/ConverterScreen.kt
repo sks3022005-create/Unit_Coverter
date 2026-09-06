@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -198,11 +199,15 @@ fun ConverterScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                // The NavHost now only pads the top, so this Scaffold's innerPadding carries
+                // the top bar. The bottom bar's space is added as trailing content below, so
+                // that when the keyboard opens it scrolls away instead of shrinking the
+                // viewport -- which is what sliced the result card down to its header.
+                .padding(top = innerPadding.calculateTopPadding())
                 .imePadding()
                 .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
             CategorySelector(
                 categories = state.categories,
@@ -211,7 +216,7 @@ fun ConverterScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
             // Cards are wrap-content. The keypad below takes ALL remaining height
             // (weight 1f) and sizes its keys to that slot — so on an S23 Ultra the
@@ -283,7 +288,10 @@ fun ConverterScreen(
                     .padding(horizontal = 16.dp),
             )
 
-            Spacer(Modifier.height(24.dp))
+            // Trailing space clearing the bottom nav bar, which the NavHost no longer pads
+            // for. As content it scrolls away under the keyboard rather than shrinking the
+            // viewport, so the result card is never clipped.
+            Spacer(Modifier.height(104.dp))
         }
     }
 
@@ -372,7 +380,7 @@ private fun InputCard(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -396,6 +404,11 @@ private fun InputCard(
                 onValueChange = onInputChanged,
                 modifier = Modifier
                     .fillMaxWidth()
+                    // A single-line field with 20sp text renders ~72dp tall by default, and
+                    // with the IME open that alone pushed the TO card off screen. Pinning it
+                    // to the standard 56dp Material line height keeps the touch target large
+                    // while leaving room for the result to stay visible, which is the rule.
+                    .height(56.dp)
                     .semantics { contentDescription = "Input value" },
                 textStyle = MaterialTheme.typography.headlineSmall.copy(
                     fontSize = fixedSp(20f),
@@ -494,7 +507,7 @@ private fun ResultCard(
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
         Box(modifier = Modifier.background(palette.softGradient, MaterialTheme.shapes.large)) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
