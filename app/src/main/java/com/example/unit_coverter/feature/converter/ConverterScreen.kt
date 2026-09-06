@@ -23,9 +23,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -86,7 +90,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.unit_coverter.core.registry.UnitCategory
 import com.example.unit_coverter.core.registry.UnitDef
 import com.example.unit_coverter.ui.components.CategorySelector
-import com.example.unit_coverter.ui.components.NumericKeypad
 import com.example.unit_coverter.ui.components.UnitPickerBottomSheet
 import com.example.unit_coverter.ui.theme.CategoryPalette
 import com.example.unit_coverter.ui.theme.categoryPalette
@@ -195,7 +198,9 @@ fun ConverterScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .imePadding()
+                .verticalScroll(rememberScrollState()),
         ) {
             Spacer(Modifier.height(8.dp))
 
@@ -278,18 +283,7 @@ fun ConverterScreen(
                     .padding(horizontal = 16.dp),
             )
 
-            // The keypad fills remaining height and sizes itself to that slot.
-            NumericKeypad(
-                onDigit = { viewModel.onEvent(ConverterEvent.AppendDigit(it)) },
-                onDecimal = { viewModel.onEvent(ConverterEvent.AppendDecimal) },
-                onBackspace = { viewModel.onEvent(ConverterEvent.Backspace) },
-                onClear = { viewModel.onEvent(ConverterEvent.ClearInput) },
-                onToggleSign = { viewModel.onEvent(ConverterEvent.ToggleSign) },
-                palette = palette,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            )
+            Spacer(Modifier.height(24.dp))
         }
     }
 
@@ -397,14 +391,9 @@ private fun InputCard(
                 )
             }
 
-            // The value is driven by the in-app keypad, so the field is a display
-            // rather than an editable text box: tapping it must not raise the
-            // system IME over the result. readOnly keeps selection and a11y
-            // behaviour while suppressing the soft keyboard entirely.
             OutlinedTextField(
                 value = inputText,
-                onValueChange = {},
-                readOnly = true,
+                onValueChange = onInputChanged,
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { contentDescription = "Input value" },
@@ -431,6 +420,11 @@ private fun InputCard(
                         }
                     }
                 },
+                keyboardOptions = KeyboardOptions(
+                    // System numeric keyboard: digits + decimal only.
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Done,
+                ),
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 colors = OutlinedTextFieldDefaults.colors(
